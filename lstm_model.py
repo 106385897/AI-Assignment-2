@@ -3,8 +3,10 @@
 
 import json
 import os
+import time
 
 import numpy as np
+import pandas as pd
 
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")  
 import tensorflow as tf                             
@@ -22,6 +24,7 @@ SEED = 42
 MIN_FLOW_FOR_MAPE = 10       # ignore near-zero flows, where percentage error explodes
 MODEL_PATH = "outputs/lstm_model.keras"
 RESULTS_PATH = "outputs/lstm_results.json"
+PREDICTIONS_PATH = "outputs/lstm_predictions.csv"
 
 
 def build_lstm(lookback=LOOKBACK, n_features=N_FEATURES, units=UNITS, dropout=DROPOUT):
@@ -74,7 +77,9 @@ def predict_flow(model, data, X, sites):
 if __name__ == "__main__":
     os.makedirs("outputs", exist_ok=True)
     data = prepare_dataset()
+    start = time.time()
     model, history = train_lstm(data)
+    train_seconds = time.time() - start                # how long training took
 
     # real values vs what the model predicted on the test days
     y_true = data.inverse_transform(data.y_test, data.site_test)
@@ -84,8 +89,14 @@ if __name__ == "__main__":
 
     results = {"LSTM": evaluate(y_true, y_pred),
                "Persistence baseline": evaluate(y_true, y_naive),
-               "epochs_run": len(history.history["loss"])}
+               "epochs_run": len(history.history["loss"]),
+               "train_seconds": round(train_seconds, 1),
+               "parameters": int(model.count_params())}
     print(json.dumps(results, indent=2))
+
+    # save the test predictions (site, true, pred) for the comparison
+    pd.DataFrame({"site": data.site_test, "true": y_true, "pred": y_pred}
+                 ).to_csv(PREDICTIONS_PATH, index=False)
 
     # save the model and the scores
     model.save(MODEL_PATH)

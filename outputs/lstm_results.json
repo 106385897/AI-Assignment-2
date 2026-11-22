@@ -11,5 +11,7 @@
     "MAPE": 14.324550480366272,
     "R2": 0.9622627699219497
   },
-  "epochs_run": 10
+  "epochs_run": 10,
+  "train_seconds": 131.6,
+  "parameters": 30369
 }
