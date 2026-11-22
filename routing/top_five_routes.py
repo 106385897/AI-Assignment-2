@@ -4,9 +4,7 @@ import networkx as nx
 from itertools import islice
 
 
-def main():
-
-    print("Loading filtered SCATS connections...")
+def load_graph():
 
     connections = pd.read_csv(
         "data/scats_filtered_connections.csv"
@@ -19,13 +17,16 @@ def main():
         graph.add_edge(
             int(edge["From"]),
             int(edge["To"]),
-            weight=float(edge["DistanceKM"])
+            distance_km=float(edge["DistanceKM"])
         )
 
-    start = 2000
-    destination = 3002
+    return graph
 
-    print(f"\nFinding top five routes: {start} -> {destination}")
+
+def find_top_five_routes(graph, start, destination):
+
+    if start not in graph or destination not in graph:
+        return []
 
     try:
 
@@ -35,31 +36,57 @@ def main():
                     graph,
                     source=start,
                     target=destination,
-                    weight="weight"
+                    weight="distance_km"
                 ),
                 5
             )
         )
 
-        print("\nTOP FIVE ROUTES")
+        results = []
 
-        for number, route in enumerate(routes, start=1):
+        for route in routes:
 
             distance = nx.path_weight(
                 graph,
                 route,
-                weight="weight"
+                weight="distance_km"
             )
 
-            print(f"\nRoute {number}:")
-            print(" -> ".join(map(str, route)))
-            print(f"Distance: {distance:.3f} km")
+            results.append({
+                "route": route,
+                "distance_km": distance
+            })
 
-        print(f"\nTotal routes found: {len(routes)}")
+        return results
 
-    except (nx.NetworkXNoPath, nx.NodeNotFound):
+    except nx.NetworkXNoPath:
+        return []
 
-        print("\nNo route found.")
+
+def main():
+
+    graph = load_graph()
+
+    start = 2000
+    destination = 3002
+
+    print(f"Top five routes: {start} -> {destination}")
+
+    results = find_top_five_routes(
+        graph,
+        start,
+        destination
+    )
+
+    if not results:
+        print("No routes found.")
+        return
+
+    for number, result in enumerate(results, start=1):
+
+        print(f"\nRoute {number}:")
+        print(" -> ".join(map(str, result["route"])))
+        print(f"Distance: {result['distance_km']:.3f} km")
 
 
 if __name__ == "__main__":
