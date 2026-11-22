@@ -95,13 +95,13 @@ class RandomForestTraffic:
         plt.show()
 
     # Save the trained model for future use
-    def save_model(self, filename="saved_models/random_forest.joblib"):
+    def save_model(self, filename="outputs/random_forest_shared.joblib"):
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
         joblib.dump(self.model, filename)
         print(f"Model saved to {filename}")
 
     # Load a previously trained model
-    def load_model(self, filename="saved_models/random_forest.joblib"):
+    def load_model(self, filename="outputs/random_forest_shared.joblib"):
         self.model = joblib.load(filename)
         print("Random Forest model loaded successfully.")

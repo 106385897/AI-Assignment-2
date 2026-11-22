@@ -1,0 +1,6 @@
+From,To,Road,DistanceKM,Verified
+3001,3002,Barkers Road,0.400,Yes
+4030,4032,Burke Road,0.850,Yes
+3120,3122,Canterbury Road,0.633,No
+3120,4035,Burke Road,0.532,No
+2000,3685,Warrigal Road,0.333,No
