@@ -103,13 +103,14 @@ class MinMaxScaler:
         return values * (self.max_ - self.min_) + self.min_
 
 
-def make_windows(df, scaler, lookback=LOOKBACK, horizon=HORIZON):
+def make_windows(df, scaler, lookback=LOOKBACK, horizon=HORIZON, return_times=False):
     # slide a window over the series: X = past values, y = the next value
+    # return_times=True also returns the timestamp of each target (for plots by hour)
     flow = scaler.transform(df["flow"].to_numpy(dtype=float))
     sin_t, cos_t = time_features(df.index)
     features = np.stack([flow, sin_t, cos_t], axis=1)          # (time, 3)
 
-    X, y = [], []
+    X, y, times = [], [], []
     for start in range(len(df) - lookback - horizon + 1):
         window = features[start:start + lookback]
         target = flow[start + lookback + horizon - 1]
@@ -118,10 +119,17 @@ def make_windows(df, scaler, lookback=LOOKBACK, horizon=HORIZON):
             continue
         X.append(window)
         y.append(target)
+        times.append(df.index[start + lookback + horizon - 1])
 
     if not X:
-        return np.empty((0, lookback, N_FEATURES)), np.empty((0,))
-    return np.array(X, dtype=np.float32), np.array(y, dtype=np.float32)
+        X, y = np.empty((0, lookback, N_FEATURES)), np.empty((0,))
+        times = np.array([], dtype="datetime64[ns]")
+    else:
+        X, y = np.array(X, dtype=np.float32), np.array(y, dtype=np.float32)
+        times = np.array(times, dtype="datetime64[ns]")
+    if return_times:
+        return X, y, times
+    return X, y
 
 
 @dataclass
@@ -138,6 +146,7 @@ class Dataset:
     site_test: np.ndarray
     scalers: dict = field(default_factory=dict)   # {site: MinMaxScaler}
     lookback: int = LOOKBACK
+    t_test: np.ndarray = None    # timestamp of each test target (same order as y_test)
 
     def inverse_transform(self, y_scaled, sites):
         """Convert scaled values back to vehicles per 15 minutes, site by site."""
@@ -162,13 +171,17 @@ def prepare_dataset(path=DATA_FILE, lookback=LOOKBACK, horizon=HORIZON,
 
     parts = {name: ([], [], []) for name in ("train", "val", "test")}  # X, y, site
     scalers = {}
+    test_times = []
 
     for site, df in series.items():
         train, val, test = split_by_day(df, train_days)
         # scaler learns from the training part only (no peeking at test)
         scalers[site] = MinMaxScaler().fit(train["flow"].to_numpy(dtype=float))
         for name, part in (("train", train), ("val", val), ("test", test)):
-            X, y = make_windows(part, scalers[site], lookback, horizon)
+            X, y, t = make_windows(part, scalers[site], lookback, horizon,
+                                   return_times=True)
+            if name == "test":
+                test_times.append(t)
             parts[name][0].append(X)
             parts[name][1].append(y)
             parts[name][2].append(np.full(len(y), site))
@@ -182,7 +195,7 @@ def prepare_dataset(path=DATA_FILE, lookback=LOOKBACK, horizon=HORIZON,
     X_va, y_va, s_va = join("val")
     X_te, y_te, s_te = join("test")
     return Dataset(X_tr, y_tr, X_va, y_va, X_te, y_te, s_tr, s_va, s_te,
-                   scalers, lookback)
+                   scalers, lookback, np.concatenate(test_times))
 
 
 # quick check: python data_processing.py

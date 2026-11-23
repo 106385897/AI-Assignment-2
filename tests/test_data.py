@@ -196,6 +196,18 @@ class RealDataTests(unittest.TestCase):
         # recovered values must be whole vehicle counts (within float error)
         np.testing.assert_allclose(recovered, np.round(recovered), atol=1e-2)
 
+    # every test sample has a timestamp, all inside the test days
+    def test_21_test_timestamps_match_test_samples(self):
+        d = self.data
+        self.assertEqual(len(d.t_test), len(d.y_test))
+        self.assertGreaterEqual(d.t_test.min(), np.datetime64("2006-10-26"))
+        self.assertLess(d.t_test.max(), np.datetime64("2006-11-01"))
+        # the timestamp really belongs to the target value
+        site = d.site_test[0]
+        flow = self.series[site]["flow"]
+        expected = d.scalers[site].transform(flow.loc[pd.Timestamp(d.t_test[0])])
+        self.assertAlmostEqual(float(d.y_test[0]), float(expected), places=5)
+
 
 if __name__ == "__main__":
     unittest.main()
