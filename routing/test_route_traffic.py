@@ -2,7 +2,7 @@
 import unittest
 import pandas as pd
 
-from top_five_routes import load_graph, find_top_five_routes
+from routing.top_five_routes import load_graph, find_top_five_routes
 
 
 class TestRouteTraffic(unittest.TestCase):
@@ -19,27 +19,18 @@ class TestRouteTraffic(unittest.TestCase):
         cls.flow_lookup = dict(
             zip(
                 flows["SCATS"].astype(int),
-                flows["PredictedFlow15Min"]
+                flows["RepresentativeFlow15Min"]
             )
         )
 
     def test_predictions_available(self):
-        self.assertGreater(
-            len(self.flow_lookup),
-            0
-        )
+        self.assertGreater(len(self.flow_lookup), 0)
 
     def test_missing_site_4264(self):
-        self.assertNotIn(
-            4264,
-            self.flow_lookup
-        )
+        self.assertNotIn(4264, self.flow_lookup)
 
     def test_missing_site_3685(self):
-        self.assertNotIn(
-            3685,
-            self.flow_lookup
-        )
+        self.assertNotIn(3685, self.flow_lookup)
 
     def test_route_one_has_predictions(self):
 
@@ -54,25 +45,20 @@ class TestRouteTraffic(unittest.TestCase):
 
         self.assertEqual(missing, [])
 
-    def test_over_capacity_detected(self):
+    def test_representative_flow_within_capacity(self):
 
-        over_capacity = [
-            site for site, flow in self.flow_lookup.items()
-            if flow * 4 > 1500
-        ]
+        for flow in self.flow_lookup.values():
+            hourly_flow = flow * 4
 
-        self.assertGreater(
-            len(over_capacity),
-            0
-        )
+            self.assertLessEqual(
+                hourly_flow,
+                1500
+            )
 
     def test_predicted_flows_nonnegative(self):
 
         for flow in self.flow_lookup.values():
-            self.assertGreaterEqual(
-                flow,
-                0
-            )
+            self.assertGreaterEqual(flow, 0)
 
 
 if __name__ == "__main__":

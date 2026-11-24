@@ -15,7 +15,7 @@ def main():
     flow_lookup = dict(
         zip(
             flows["SCATS"].astype(int),
-            flows["PredictedFlow15Min"]
+            flows["RepresentativeFlow15Min"]
         )
     )
 
