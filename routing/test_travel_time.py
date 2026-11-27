@@ -1,6 +1,6 @@
 import unittest
 
-from travel_time import (
+from routing.travel_time import (
     to_hourly_flow,
     flow_to_speed,
     calculate_travel_time,

@@ -6,7 +6,7 @@ from itertools import islice
 from routing.travel_time import calculate_edge_cost
 
 
-def load_graph(use_traffic=False):
+def load_graph(use_traffic=False, allow_historical_fallback=False):
 
     connections = pd.read_csv(
         "data/scats_filtered_connections.csv"
@@ -14,6 +14,7 @@ def load_graph(use_traffic=False):
 
     graph = nx.DiGraph()
     flow_lookup = {}
+    flow_sources = {}
 
     if use_traffic:
 
@@ -27,6 +28,29 @@ def load_graph(use_traffic=False):
                 flows["RepresentativeFlow15Min"]
             )
         )
+
+        flow_sources = {
+            site: "Random Forest prediction"
+            for site in flow_lookup
+        }
+
+        if allow_historical_fallback:
+
+            fallback = pd.read_csv(
+                "data/scats_historical_fallback_flows.csv"
+            )
+
+            for _, row in fallback.iterrows():
+
+                site = int(row["SCATS"])
+
+                if site not in flow_lookup:
+
+                    flow_lookup[site] = float(
+                        row["RepresentativeFlow15Min"]
+                    )
+
+                    flow_sources[site] = row["Source"]
 
     for _, edge in connections.iterrows():
 
@@ -50,10 +74,12 @@ def load_graph(use_traffic=False):
                 continue
 
             try:
+
                 travel_time = calculate_edge_cost(
                     distance,
                     float(flow)
                 )
+
             except ValueError:
                 continue
 
@@ -61,7 +87,8 @@ def load_graph(use_traffic=False):
                 start,
                 destination,
                 distance_km=distance,
-                travel_time_seconds=travel_time
+                travel_time_seconds=travel_time,
+                flow_source=flow_sources[start]
             )
 
     return graph
@@ -124,6 +151,11 @@ def find_top_five_routes(
                     else 0.0
                 )
 
+                result["flow_sources"] = sorted({
+                    graph[route[i]][route[i + 1]]["flow_source"]
+                    for i in range(len(route) - 1)
+                })
+
             results.append(result)
 
         return results
@@ -134,7 +166,10 @@ def find_top_five_routes(
 
 def main():
 
-    graph = load_graph(use_traffic=True)
+    graph = load_graph(
+        use_traffic=True,
+        allow_historical_fallback=False
+    )
 
     start = 2000
     destination = 3002
@@ -160,9 +195,15 @@ def main():
         print(f"\nRoute {number}:")
         print(" -> ".join(map(str, result["route"])))
         print(f"Distance: {result['distance_km']:.3f} km")
+
         print(
             f"Estimated travel time: "
             f"{result['travel_time_seconds']:.2f} seconds"
+        )
+
+        print(
+            "Traffic source:",
+            ", ".join(result["flow_sources"])
         )
 
 
