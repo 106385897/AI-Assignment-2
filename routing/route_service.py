@@ -11,7 +11,8 @@ def get_routes(start, destination, use_traffic=True):
     destination = int(destination)
 
     graph = load_graph(
-        use_traffic=use_traffic
+    use_traffic=use_traffic,
+    allow_historical_fallback=use_traffic
     )
 
     routes = find_top_five_routes(

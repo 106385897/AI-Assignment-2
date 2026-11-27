@@ -107,5 +107,29 @@ class TestRouteService(unittest.TestCase):
             )
 
 
+    def test_historical_fallback_restores_routes(self):
+        routes = get_routes(970, 2200)
+
+        self.assertGreater(len(routes), 0)
+
+        self.assertIn(
+            "Observed historical fallback",
+            routes[0]["flow_sources"]
+        )
+
+    def test_missing_prediction_sites_supported(self):
+        for start, end in [
+            (3685, 2000),
+            (4264, 3002)
+        ]:
+            routes = get_routes(start, end)
+
+            self.assertGreater(len(routes), 0)
+
+            self.assertIn(
+                "Observed historical fallback",
+                routes[0]["flow_sources"]
+            )
+
 if __name__ == "__main__":
     unittest.main()
