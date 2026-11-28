@@ -1,0 +1,5 @@
+,MAE,MAE,RMSE,RMSE,MAPE,MAPE,R2,R2,epochs_run,epochs_run,train_seconds,train_seconds,parameters,parameters
+,mean,std,mean,std,mean,std,mean,std,mean,std,mean,std,mean,std
+model,,,,,,,,,,,,,,
+GRU,28.645,1.328,43.707,1.948,13.302,1.461,0.975,0.002,12.4,6.269,174.9,100.934,23201.0,0.0
+LSTM,33.23,5.449,48.889,5.968,16.76,4.865,0.968,0.008,10.6,3.05,165.06,43.629,30369.0,0.0
